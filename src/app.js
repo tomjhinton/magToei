@@ -1,10 +1,13 @@
 import 'bulma'
 import './style.scss'
-import * as mm from '@magenta/music'
-const core = require('@magenta/music/node/core')
-const musicRNN = new mm.MusicRNN('https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/drum_kit_rnn')
 
-musicRNN.initialize()
+import * as mm from '@magenta/music'
+
+const musicRNN= new mm.MusicRNN('https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/drum_kit_rnn')
+
+
+let started = false
+
 
 const  TWINKLE_TWINKLE = {
   notes: [
@@ -26,35 +29,75 @@ const  TWINKLE_TWINKLE = {
   totalTime: 8
 }
 
-const rnnSteps = 200
+
+const rnnSteps = 20
 const rnnTemperature = 1.5
 
-let sampleOut
 
-const qns = mm.sequences.quantizeNoteSequence(TWINKLE_TWINKLE, 4)
-musicRNN
-  .continueSequence(qns, rnnSteps, rnnTemperature)
-  .then((sample) => {
 
-    for(let i=0;i<sample.notes.length;i++){
-      if(i%2===0){
-        sample.notes[i].isDrum = false
+function generate(input){
+  const qns = mm.sequences.quantizeNoteSequence(input, 4)
+  musicRNN
+    .continueSequence(qns, rnnSteps, rnnTemperature)
+    .then((sample) => {
+
+      for(let i=0;i<sample.notes.length;i++){
+        if(i%2===0){
+          sample.notes[i].isDrum = false
+        }
       }
-    }
-    sampleOut = sample
 
-    test()
-  })
+      const config = {
+        noteHeight: 20,
+        pixelsPerTimeStep: 100,  // like a note width
+        noteSpacing: 10,
+        noteRGB: `${Math.random()*255},${Math.random()*255},${Math.random()*255}`,
+        activeNoteRGB: '240, 84, 119'
+      }
 
-function test(){
-  const  viz = new mm.Visualizer(sampleOut, document.getElementById('canvas'))
-  const vizPlayer = new mm.Player(false, {
-    run: (sampleOut) => viz.redraw(sampleOut, document.getElementById('canvas')),
-    stop: () => {
-      console.log('done')
-      vizPlayer.start(sampleOut)
-    }
-  })
+      const  viz = new mm.PianoRollCanvasVisualizer(sample, document.getElementById('canvas'), config)
+      console.log(viz.config.noteHeight)
+      console.log(viz)
 
-  vizPlayer.start(sampleOut)
+
+
+      const vizPlayer = new mm.Player(false, {
+        run: (sample) => viz.redraw(sample, true),
+        stop: () => {
+          console.log('done')
+          generate(sample)
+        }
+
+      })
+
+      vizPlayer.start(sample)
+
+
+    })
 }
+
+function start(){
+  if(!started){
+
+    generate(TWINKLE_TWINKLE)
+  }
+
+}
+
+const can = document.getElementById('canvas')
+var ctx = can.getContext('2d')
+ctx.globalAlpha = 1
+ctx.fillStyle = 'black'
+ctx.fillRect(0, 0, can.width, can.height)
+ctx.fillStyle = 'white'
+ctx.font = '80px Helvetica'
+ctx.fillText('Click', can.width/2, can.height/2)
+
+can.addEventListener('click', function () {
+  ctx.clearRect(0, 0, can.width, can.height)
+  ctx.globalAlpha = 0.1
+  ctx.fillStyle = `rgb(${Math.random()*255},${Math.random()*255},${Math.random()*255})`,
+  ctx.fillRect(0, 0, can.width, can.height)
+  can.classList.add('spin')
+  start()
+})
