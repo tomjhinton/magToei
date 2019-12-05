@@ -76,14 +76,6 @@ function generate(input){
     })
 }
 
-function start(){
-  if(!started){
-
-    generate(TWINKLE_TWINKLE)
-  }
-
-}
-
 const can = document.getElementById('canvas')
 var ctx = can.getContext('2d')
 ctx.globalAlpha = 1
@@ -93,11 +85,23 @@ ctx.fillStyle = 'white'
 ctx.font = '80px Helvetica'
 ctx.fillText('Click', can.width/2, can.height/2)
 
+
+
+function start(){
+  if(!started){
+    started = true
+    ctx.clearRect(0, 0, can.width, can.height)
+    ctx.globalAlpha = 0.1
+    ctx.fillStyle = `rgb(${Math.random()*255},${Math.random()*255},${Math.random()*255})`,
+    ctx.fillRect(0, 0, can.width, can.height)
+    can.classList.add('spin')
+    generate(TWINKLE_TWINKLE)
+  }
+
+}
+
+
 can.addEventListener('click', function () {
-  ctx.clearRect(0, 0, can.width, can.height)
-  ctx.globalAlpha = 0.1
-  ctx.fillStyle = `rgb(${Math.random()*255},${Math.random()*255},${Math.random()*255})`,
-  ctx.fillRect(0, 0, can.width, can.height)
-  can.classList.add('spin')
+
   start()
 })
